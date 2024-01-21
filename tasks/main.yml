@@ -2,7 +2,7 @@
 
 - name: Install required apt packages
   become: yes
-  apt:
+  ansble.builtin.package:
     name: git
     state: present
 
