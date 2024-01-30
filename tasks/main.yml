@@ -56,6 +56,38 @@
     name: "{{ mailcow__docker_compose_project_name }}-nginx-mailcow-1"
   register: mailcow_running
 
+- name: Add traefik labels to docker-compose
+  ansible.builtin.blockinfile:
+    path: "{{ mailcow__install_path }}/docker-compose.yml"
+    insertafter: "    nginx-mailcow:"
+    block: \t\tlabels:\
+      \t\t\t- "traefik.enable=true"
+      \t\t\t- "traefik.http.services.mailcow-sec.loadbalancer.server.port=443"
+      \t\t\t- "traefik.http.routers.mailcow-sec.rule=Host(`{{ mailcow__hostname }}`)"
+      \t\t\t- "traefik.docker.network=web_backend"
+      \t\t\t- "traefik.http.routers.mailcow-sec.tls=true"
+      \t\t\t- "traefik.http.routers.mailcow-sec.tls.certResolver=letsdns"
+      \t\t\t- "traefik.http.routers.mailcow.rule=Host(`{{ mailcow__hostname }}`)"
+      \t\t\t- "traefik.http.services.mailcow.loadbalancer.server.port=80"
+      \t\t\t- "traefik.http.routers.mailcow-sec.middlewares=mailcow-sslheaders"
+      \t\t\t- "traefik.http.middlewares.mailcow-sslheaders.headers.customrequestheaders.X-Forwarded-Proto=https"\n
+
+- name: Add nginx container to web_backend network
+  ansible.builtin.blockinfile:
+    path: "{{ mailcow__install_path }}/docker-compose.yml"
+    insertafter: "^    nginx-mailcow:(.|\n)*?- nginx"
+    block:
+      \t\tweb_backend:\n
+
+- name: Add nginx container to web_backend network
+  ansible.builtin.blockinfile:
+    path: "{{ mailcow__install_path }}/docker-compose.yml"
+    insertafter: "^network:"
+    block:
+      \tweb_backend:
+      \t\texternal: true\n
+
+
 - name: Start mailcow container stack
   become: yes
   shell: |
