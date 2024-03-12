@@ -3,7 +3,10 @@
 - name: Install required apt packages
   become: yes
   ansible.builtin.package:
-    name: git
+    name: 
+      - git
+      - which
+      - openssl
     state: present
 
 - name: Check if mailcow installation directory exists
@@ -59,33 +62,56 @@
 - name: Add traefik labels to docker-compose
   ansible.builtin.blockinfile:
     path: "{{ mailcow__install_path }}/docker-compose.yml"
-    insertafter: "    nginx-mailcow:"
-    block: \t\tlabels:\
-      \t\t\t- "traefik.enable=true"
-      \t\t\t- "traefik.http.services.mailcow-sec.loadbalancer.server.port=443"
-      \t\t\t- "traefik.http.routers.mailcow-sec.rule=Host(`{{ mailcow__hostname }}`)"
-      \t\t\t- "traefik.docker.network=web_backend"
-      \t\t\t- "traefik.http.routers.mailcow-sec.tls=true"
-      \t\t\t- "traefik.http.routers.mailcow-sec.tls.certResolver=letsdns"
-      \t\t\t- "traefik.http.routers.mailcow.rule=Host(`{{ mailcow__hostname }}`)"
-      \t\t\t- "traefik.http.services.mailcow.loadbalancer.server.port=80"
-      \t\t\t- "traefik.http.routers.mailcow-sec.middlewares=mailcow-sslheaders"
-      \t\t\t- "traefik.http.middlewares.mailcow-sslheaders.headers.customrequestheaders.X-Forwarded-Proto=https"\n
+    marker: "# {mark} TRAEFIK LABELS"
+    insertafter: "^    nginx-mailcow:"
+    block: |
+      {% filter indent(width=6, first=true) %}
+      labels:
+        - "traefik.enable=true"
+        - "traefik.http.services.mailcow-sec.loadbalancer.server.port=443"
+        - "traefik.http.services.mailcow.loadbalancer.server.port=80"
+        - "traefik.http.routers.mailcow-sec.rule=Host(`{{ mailcow__hostname }}`)"
+        - "traefik.docker.network=web_backend"
+        - "traefik.http.routers.mailcow-sec.tls=true"
+        - "traefik.http.routers.mailcow-sec.tls.certResolver=letsdns"
+        - "traefik.http.routers.mailcow.rule=Host(`{{ mailcow__hostname }}`)"
+        - "traefik.http.routers.mailcow-sec.middlewares=mailcow-sslheaders"
+        - "traefik.http.middlewares.mailcow-sslheaders.headers.customrequestheaders.X-Forwarded-Proto=https"
+      {% endfilter %}
+
+- name: Replace port forwarding by port exposing
+  ansible.builtin.replace:
+    path: "{{ mailcow__install_path }}/docker-compose.yml"
+    regexp: '^(    nginx-mailcow:(?:.|\n)*?)ports:(.|\n)*?80\}"'
+    #after: '^    nginx-mailcow:'
+    replace: |
+      \1
+      {% filter indent(width=6, first=true) %}
+      expose:
+        - 443
+        - 80
+      {% endfilter %}
 
 - name: Add nginx container to web_backend network
   ansible.builtin.blockinfile:
     path: "{{ mailcow__install_path }}/docker-compose.yml"
-    insertafter: "^    nginx-mailcow:(.|\n)*?- nginx"
-    block:
-      \t\tweb_backend:\n
+    marker: "# {mark} NETWORK JOIN"
+    insertafter: "(?m)^    nginx-mailcow:(.|\n)*?- nginx"
+    block: |
+      {% filter indent(width=8, first=true) %}
+      web_backend:
+      {% endfilter %}
 
 - name: Add nginx container to web_backend network
   ansible.builtin.blockinfile:
     path: "{{ mailcow__install_path }}/docker-compose.yml"
-    insertafter: "^network:"
-    block:
-      \tweb_backend:
-      \t\texternal: true\n
+    marker: "# {mark} NETWORK DECLARATION"
+    insertafter: "^networks:"
+    block: |
+      {% filter indent(width=2, first=true) %}
+      web_backend:
+        external: true
+      {% endfilter %}
 
 
 - name: Start mailcow container stack
