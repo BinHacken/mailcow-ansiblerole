@@ -68,15 +68,14 @@
       {% filter indent(width=6, first=true) %}
       labels:
         - "traefik.enable=true"
-        - "traefik.http.services.mailcow-sec.loadbalancer.server.port=443"
-        - "traefik.http.services.mailcow.loadbalancer.server.port=80"
-        - "traefik.http.routers.mailcow-sec.rule=Host(`{{ mailcow__hostname }}`)"
+        - "traefik.http.services.mailcow-sec.loadbalancer.server.port=80"
+        - "traefik.http.routers.mailcow-sec.rule=Host(`{{ domain }}`)"
         - "traefik.docker.network=web_backend"
         - "traefik.http.routers.mailcow-sec.tls=true"
-        - "traefik.http.routers.mailcow-sec.tls.certResolver=letsdns"
-        - "traefik.http.routers.mailcow.rule=Host(`{{ mailcow__hostname }}`)"
-        - "traefik.http.routers.mailcow-sec.middlewares=mailcow-sslheaders"
-        - "traefik.http.middlewares.mailcow-sslheaders.headers.customrequestheaders.X-Forwarded-Proto=https"
+        - "traefik.http.routers.mailcow-sec.tls.certResolver={{ certificate_resolver }}"
+        - "traefik.http.routers.mailcow.rule=Host(`{{ domain }}`)"
+        - "traefik.http.routers.mailcow.middlewares=redirect-to-https@file"
+        - "traefik.http.routers.mailcow-sec.middlewares=security_headers@file"
       {% endfilter %}
 
 - name: Replace port forwarding by port exposing
