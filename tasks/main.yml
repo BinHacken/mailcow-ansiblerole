@@ -69,11 +69,11 @@
       labels:
         - "traefik.enable=true"
         - "traefik.http.services.mailcow-sec.loadbalancer.server.port=80"
-        - "traefik.http.routers.mailcow-sec.rule=Host(`{{ domain }}`)"
+        - "traefik.http.routers.mailcow-sec.rule=Host(`{{ mailcow__hostname }}`)"
         - "traefik.docker.network=web_backend"
         - "traefik.http.routers.mailcow-sec.tls=true"
         - "traefik.http.routers.mailcow-sec.tls.certResolver={{ certificate_resolver }}"
-        - "traefik.http.routers.mailcow.rule=Host(`{{ domain }}`)"
+        - "traefik.http.routers.mailcow.rule=Host(`{{ mailcow__hostname }}`)"
         - "traefik.http.routers.mailcow.middlewares=redirect-to-https@file"
         - "traefik.http.routers.mailcow-sec.middlewares=security_headers@file"
       {% endfilter %}
@@ -110,6 +110,21 @@
       {% filter indent(width=2, first=true) %}
       web_backend:
         external: true
+      {% endfilter %}
+
+- name: Add healthcheck to unbound container
+  ansible.builtin.blockinfile:
+    path: "{{ mailcow__install_path }}/docker-compose.yml"
+    marker: "# {mark} UNBOUND HEALTHCHECK"
+    insertafter: "(?m)^    unbound-mailcow:(.|\n)*?restart: always"
+    block: |
+      {% filter indent(width=6, first=true) %}
+      healthcheck:
+        test: ["CMD", "nslookup", "mailcow.email"]
+        interval: 1m30s
+        timeout: 10s
+        retries: 3
+        start_period: 2m
       {% endfilter %}
 
 
