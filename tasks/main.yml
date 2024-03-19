@@ -59,58 +59,58 @@
     name: "{{ mailcow__docker_compose_project_name }}-nginx-mailcow-1"
   register: mailcow_running
 
-- name: Add traefik labels to docker-compose
-  ansible.builtin.blockinfile:
-    path: "{{ mailcow__install_path }}/docker-compose.yml"
-    marker: "# {mark} TRAEFIK LABELS"
-    insertafter: "^    nginx-mailcow:"
-    block: |
-      {% filter indent(width=6, first=true) %}
-      labels:
-        - "traefik.enable=true"
-        - "traefik.http.services.mailcow-sec.loadbalancer.server.port=80"
-        - "traefik.http.routers.mailcow-sec.rule=Host(`{{ mailcow__hostname }}`)"
-        - "traefik.docker.network=web_backend"
-        - "traefik.http.routers.mailcow-sec.tls=true"
-        - "traefik.http.routers.mailcow-sec.tls.certResolver={{ certificate_resolver }}"
-        - "traefik.http.routers.mailcow.rule=Host(`{{ mailcow__hostname }}`)"
-        - "traefik.http.routers.mailcow.middlewares=redirect-to-https@file"
-        - "traefik.http.routers.mailcow-sec.middlewares=security_headers@file"
-      {% endfilter %}
+# - name: Add traefik labels to docker-compose
+#   ansible.builtin.blockinfile:
+#     path: "{{ mailcow__install_path }}/docker-compose.yml"
+#     marker: "# {mark} TRAEFIK LABELS"
+#     insertafter: "^    nginx-mailcow:"
+#     block: |
+#       {% filter indent(width=6, first=true) %}
+#       labels:
+#         - "traefik.enable=true"
+#         - "traefik.http.services.mailcow-sec.loadbalancer.server.port=80"
+#         - "traefik.http.routers.mailcow-sec.rule=Host(`{{ mailcow__hostname }}`)"
+#         - "traefik.docker.network=web_backend"
+#         - "traefik.http.routers.mailcow-sec.tls=true"
+#         - "traefik.http.routers.mailcow-sec.tls.certResolver={{ certificate_resolver }}"
+#         - "traefik.http.routers.mailcow.rule=Host(`{{ mailcow__hostname }}`)"
+#         - "traefik.http.routers.mailcow.middlewares=redirect-to-https@file"
+#         - "traefik.http.routers.mailcow-sec.middlewares=security_headers@file"
+#       {% endfilter %}
 
-- name: Replace port forwarding by port exposing
-  ansible.builtin.replace:
-    path: "{{ mailcow__install_path }}/docker-compose.yml"
-    regexp: '^(    nginx-mailcow:(?:.|\n)*?)ports:(.|\n)*?80\}"'
-    #after: '^    nginx-mailcow:'
-    replace: |
-      \1
-      {% filter indent(width=6, first=true) %}
-      expose:
-        - 443
-        - 80
-      {% endfilter %}
+# - name: Replace port forwarding by port exposing
+#   ansible.builtin.replace:
+#     path: "{{ mailcow__install_path }}/docker-compose.yml"
+#     regexp: '^(    nginx-mailcow:(?:.|\n)*?)ports:(.|\n)*?80\}"'
+#     #after: '^    nginx-mailcow:'
+#     replace: |
+#       \1
+#       {% filter indent(width=6, first=true) %}
+#       expose:
+#         - 443
+#         - 80
+#       {% endfilter %}
 
-- name: Add nginx container to web_backend network
-  ansible.builtin.blockinfile:
-    path: "{{ mailcow__install_path }}/docker-compose.yml"
-    marker: "# {mark} NETWORK JOIN"
-    insertafter: "(?m)^    nginx-mailcow:(.|\n)*?- nginx"
-    block: |
-      {% filter indent(width=8, first=true) %}
-      web_backend:
-      {% endfilter %}
+# - name: Add nginx container to web_backend network
+#   ansible.builtin.blockinfile:
+#     path: "{{ mailcow__install_path }}/docker-compose.yml"
+#     marker: "# {mark} NETWORK JOIN"
+#     insertafter: "(?m)^    nginx-mailcow:(.|\n)*?- nginx"
+#     block: |
+#       {% filter indent(width=8, first=true) %}
+#       web_backend:
+#       {% endfilter %}
 
-- name: Add nginx container to web_backend network
-  ansible.builtin.blockinfile:
-    path: "{{ mailcow__install_path }}/docker-compose.yml"
-    marker: "# {mark} NETWORK DECLARATION"
-    insertafter: "^networks:"
-    block: |
-      {% filter indent(width=2, first=true) %}
-      web_backend:
-        external: true
-      {% endfilter %}
+# - name: Add nginx container to web_backend network
+#   ansible.builtin.blockinfile:
+#     path: "{{ mailcow__install_path }}/docker-compose.yml"
+#     marker: "# {mark} NETWORK DECLARATION"
+#     insertafter: "^networks:"
+#     block: |
+#       {% filter indent(width=2, first=true) %}
+#       web_backend:
+#         external: true
+#       {% endfilter %}
 
 - name: Add healthcheck to unbound container
   ansible.builtin.blockinfile:
